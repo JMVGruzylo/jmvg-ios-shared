@@ -2,31 +2,46 @@
 #
 # Replaces the org-default code-scanning setup with a path-filtered Swift
 # workflow so docs-only PRs (.claude/ mirror updates, README tweaks, fleet
-# ops notes) no longer trip the "no source to analyze" autobuilder failure
-# that org-default CodeQL emits in ~3s on diffs with zero Swift changes.
+# ops notes, workflow tweaks) no longer trip the "no source to analyze"
+# autobuilder failure that org-default CodeQL emits in ~3s on diffs with
+# zero Swift changes.
 #
-# NOTE: For this workflow to take effect, "Default setup" must be DISABLED
-# in this repo's Settings → Code security → Code scanning. Otherwise the
-# default setup keeps running in parallel and continues to fail docs-only
-# PRs even when this workflow passes.
+# Uses an ALLOWLIST `paths:` filter (not paths-ignore) so the workflow only
+# fires when actual Swift source or its build manifests change. Anything
+# else — docs, config, .claude/, .github/, fastlane README — skips the
+# check entirely and the PR check stays green.
+#
+# build-mode: autobuild works for both .xcodeproj/.xcworkspace projects
+# and SwiftPM packages.
+#
+# REQUIRED ADMIN STEP for this workflow to take effect: Disable "Default
+# setup" in this repo's Settings → Code security → Code scanning.
+# Otherwise the default setup keeps running in parallel and continues to
+# fail docs-only PRs even when this workflow skips them cleanly.
 
 name: CodeQL
 
 on:
   push:
     branches: [main]
-    paths-ignore:
-      - '.claude/**'
-      - '**.md'
-      - 'docs/**'
-      - 'fastlane/README.md'
+    paths:
+      - '**.swift'
+      - '**/*.xcodeproj/**'
+      - '**/*.xcworkspace/**'
+      - 'Package.swift'
+      - 'Package.resolved'
+      - 'Podfile'
+      - 'Podfile.lock'
   pull_request:
     branches: [main]
-    paths-ignore:
-      - '.claude/**'
-      - '**.md'
-      - 'docs/**'
-      - 'fastlane/README.md'
+    paths:
+      - '**.swift'
+      - '**/*.xcodeproj/**'
+      - '**/*.xcworkspace/**'
+      - 'Package.swift'
+      - 'Package.resolved'
+      - 'Podfile'
+      - 'Podfile.lock'
   schedule:
     # Weekly full scan on Mondays at 06:00 UTC.
     - cron: '0 6 * * 1'
