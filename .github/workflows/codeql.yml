@@ -62,7 +62,28 @@ jobs:
         uses: github/codeql-action/init@v3
         with:
           languages: swift
-          build-mode: autobuild
+          # CI-COST-URGENT-IOS-001 (2026-05-16): autobuild was failing on
+          # every PR for this SwiftPM package because the package targets
+          # iOS-only APIs (JMVGAuth uses Keychain Services + iOS-only
+          # accessibility constants) and the autobuilder defaults to
+          # `swift build` against the host (macOS) SDK. Switched to
+          # manual + xcodebuild against the iOS Simulator SDK below.
+          build-mode: manual
+
+      - name: Resolve SPM deps
+        run: swift package resolve
+
+      - name: Build for CodeQL (iOS Simulator)
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -scheme JMVGAuth \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build \
+            -skipPackagePluginValidation \
+            -skipMacroValidation \
+            -configuration Debug \
+            build
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
