@@ -55,6 +55,20 @@ applies the same skip-prefix mechanism — currently in scope.
 | ro-control-ios | 114 | Higher count driven by `/api/crew/*`, `/api/kiosk/*` subtrees |
 | ro-tools-ios   | 38  | Narrower BFF surface; many calls funnel through the Next.js proxies |
 
+## Sunset target (IOSB-025): 2026-08-01
+
+Proposed sunset coordinates with BackEndAgent. Sunset markers placed
+in the iOS code so a grep for `IOSB-025 sunset` lights up the dead
+branches when the date passes:
+
+  - `ro-tools-ios/ROTools/Services/APIService.swift` — `normalizedPostPlan` +
+    `legacyManagerChannelId`
+  - `ro-control-ios/ROControl/Services/APIService.swift` — `finalizeChecklist`
+    `/finalize → /complete` fallback
+
+After 2026-08-01, BackEndAgent confirms server-side has settled on the
+single canonical shape and iOS drops the compat shims in one batch.
+
 ## Sunset proposals (file as queue items with BackEndAgent)
 
 1. **`/api/checklists/instances/:id/finalize`** — promote the legacy
