@@ -54,7 +54,9 @@ concurrency:
 jobs:
   analyze:
     name: Analyze (swift)
-    runs-on: macos-14
+    # BUG-FIND-2026-05-18: was macos-14 (Xcode 16 default). Match the
+    # production runner used by consuming apps (macos-15 + Xcode 26.x).
+    runs-on: macos-15
     # BUG-FIND-2026-05-18: bound runaway runner time (macOS minutes are 10× cost).
     timeout-minutes: 60
     permissions:
