@@ -46,10 +46,17 @@ on:
     # Weekly full scan on Mondays at 06:00 UTC.
     - cron: '0 6 * * 1'
 
+# BUG-FIND-2026-05-18: cancel duplicate scans on rapid pushes (CI-COST hardening).
+concurrency:
+  group: codeql-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   analyze:
     name: Analyze (swift)
     runs-on: macos-14
+    # BUG-FIND-2026-05-18: bound runaway runner time (macOS minutes are 10× cost).
+    timeout-minutes: 60
     permissions:
       actions: read
       contents: read
