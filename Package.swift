@@ -14,11 +14,19 @@ let package = Package(
             name: "JMVGAuth",
             targets: ["JMVGAuth"]
         ),
+        .library(
+            name: "JMVGHaptics",
+            targets: ["JMVGHaptics"]
+        ),
     ],
     targets: [
         .target(
             name: "JMVGAuth",
             path: "Sources/JMVGAuth"
+        ),
+        .target(
+            name: "JMVGHaptics",
+            path: "Sources/JMVGHaptics"
         ),
         .testTarget(
             name: "JMVGAuthTests",
