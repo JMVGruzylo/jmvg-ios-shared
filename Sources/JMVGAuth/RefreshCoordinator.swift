@@ -23,6 +23,20 @@ public actor RefreshCoordinator {
     /// the race-window argument.
     private var inFlight: Task<Bool, Never>?
 
+    /// Consecutive refresh failure count. Resets on success.
+    /// Pass-5 OPEN-DEFERRED fix: if the server-rotated refresh token fails
+    /// to persist to Keychain (concurrent write, device locked), the next
+    /// session reads the burned (server-invalidated) old token and will
+    /// 401 forever. After `maxConsecutiveFailures` failures the coordinator
+    /// surfaces `shouldForceSignOut = true` so the app can force a full
+    /// sign-out rather than loop indefinitely.
+    private var consecutiveFailures: Int = 0
+    private let maxConsecutiveFailures: Int = 3
+
+    /// Set by `performRefresh` after `maxConsecutiveFailures` consecutive
+    /// failures. Caller should check and trigger sign-out if true.
+    public private(set) var shouldForceSignOut: Bool = false
+
     public init() {}
 
     /// Run `refresh` under the single-flight invariant.
@@ -46,19 +60,35 @@ public actor RefreshCoordinator {
         }
         let task = Task<Bool, Never> { [weak self] in
             let result = await refresh()
-            await self?.clearInFlightIfCurrent()
+            await self?.recordResult(result)
             return result
         }
         inFlight = task
         return await task.value
     }
 
-    /// Called from inside the refresh task body, on the coordinator's
-    /// actor, before the body returns. Clearing here (rather than after
-    /// `await task.value` returns to the calling site) closes the race
-    /// window where a concurrent caller could observe the just-completed
-    /// task and reuse its cached result.
-    private func clearInFlightIfCurrent() {
+    /// Reset the force-sign-out flag after a successful explicit sign-in.
+    public func resetFailureState() {
+        consecutiveFailures = 0
+        shouldForceSignOut = false
+    }
+
+    /// Record the outcome of a refresh attempt and update failure tracking.
+    /// Clears inFlight before returning so the race-window invariant holds.
+    private func recordResult(_ success: Bool) {
         inFlight = nil
+        if success {
+            consecutiveFailures = 0
+            shouldForceSignOut = false
+        } else {
+            consecutiveFailures += 1
+            if consecutiveFailures >= maxConsecutiveFailures {
+                // Likely scenario: rotated refresh token failed to persist;
+                // server has invalidated the old token family. Signal the app
+                // to force sign-out so the user can re-authenticate cleanly
+                // rather than looping 401s indefinitely.
+                shouldForceSignOut = true
+            }
+        }
     }
 }
