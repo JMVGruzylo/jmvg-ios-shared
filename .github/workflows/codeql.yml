@@ -22,16 +22,11 @@
 name: CodeQL
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - '**.swift'
-      - '**/*.xcodeproj/**'
-      - '**/*.xcworkspace/**'
-      - 'Package.swift'
-      - 'Package.resolved'
-      - 'Podfile'
-      - 'Podfile.lock'
+  # CI-COST-IOS-002 (2026-05-21): dropped push-to-main trigger to avoid
+  # firing a $1-2 macos-15 CodeQL scan on every Swift code change. Cloud
+  # routines (Bug-Finder/Grinder/Code-Quality) push to main 5-13×/day —
+  # that was a direct line to the budget. PR scan + weekly schedule
+  # cover new-vulnerability detection; manual dispatch handles ad-hoc.
   pull_request:
     branches: [main]
     paths:
@@ -45,6 +40,7 @@ on:
   schedule:
     # Weekly full scan on Mondays at 06:00 UTC.
     - cron: '0 6 * * 1'
+  workflow_dispatch:
 
 # BUG-FIND-2026-05-18: cancel duplicate scans on rapid pushes (CI-COST hardening).
 concurrency:
