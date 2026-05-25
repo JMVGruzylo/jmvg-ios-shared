@@ -58,9 +58,12 @@ public actor RefreshCoordinator {
         if let existing = inFlight {
             return await existing.value
         }
-        let task = Task<Bool, Never> { [weak self] in
+        // IOSB-RC-007 2026-05-25: use strong [self] not [weak self]. Actors have no
+        // RunLoop hold-back so Task<> won't form a retain cycle, and [weak self] risks
+        // leaving inFlight set forever if self were nil when recordResult runs.
+        let task = Task<Bool, Never> { [self] in
             let result = await refresh()
-            await self?.recordResult(result)
+            await self.recordResult(result)
             return result
         }
         inFlight = task
