@@ -25,4 +25,31 @@ final class AuthTokensTests: XCTestCase {
         let tokens = AuthTokens(keychain: store, refreshTokenKey: AuthTokens.rcRefreshTokenKey)
         XCTAssertNotNil(tokens)
     }
+
+    func test_authTokens_saveGetClear_roundTrip() throws {
+        // Isolate from any real device/login Keychain with a per-run service.
+        let store = KeychainStore(service: "com.jmvalley.test-\(UUID().uuidString)")
+        let tokens = AuthTokens(keychain: store, refreshTokenKey: AuthTokens.rtRefreshTokenKey)
+
+        // Probe first: SecItem access isn't available in every CI
+        // environment (headless runners return errSecMissingEntitlement).
+        // Skip the behavioural assertions there rather than flaking.
+        let probe = "probe-\(UUID().uuidString)"
+        tokens.saveRefreshToken(probe)
+        guard tokens.refreshToken() == probe else {
+            tokens.clearRefreshToken()
+            throw XCTSkip("Keychain unavailable in this environment; behavioural round-trip skipped")
+        }
+
+        let token = "rt-\(UUID().uuidString)"
+        tokens.saveRefreshToken(token)
+        XCTAssertEqual(tokens.refreshToken(), token, "saved token should read back verbatim")
+
+        // Empty saves are documented no-ops and must not clobber an existing token.
+        tokens.saveRefreshToken("")
+        XCTAssertEqual(tokens.refreshToken(), token, "empty save must not overwrite an existing token")
+
+        tokens.clearRefreshToken()
+        XCTAssertNil(tokens.refreshToken(), "cleared token should read back nil")
+    }
 }

@@ -13,6 +13,7 @@ import UIKit
 /// ~0.5-1s before the expected trigger (e.g. on `onTapGesture` begin) so the
 /// engine is fully spun up by the time of the fire — callers can do this via
 /// the new `prepareXxx()` family below.
+@MainActor
 public enum JMVGHaptics {
     // MARK: - Module-level generator singletons
     //

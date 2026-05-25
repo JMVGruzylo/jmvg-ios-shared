@@ -75,12 +75,17 @@ public final class KeychainStore {
             kSecAttrService as String: service,
             kSecAttrAccount as String: key,
         ]
-        SecItemDelete(query as CFDictionary)
         var addQuery = query
         addQuery[kSecValueData as String] = data
         addQuery[kSecAttrAccessible as String] = accessibility.cfValue
         addQuery[kSecAttrSynchronizable as String] = false
-        let status = SecItemAdd(addQuery as CFDictionary, nil)
+        // Atomic upsert — SecItemUpdate avoids the delete+add window where a
+        // jetsam kill between the two calls would permanently destroy the entry.
+        let updateAttrs: [String: Any] = [kSecValueData as String: data]
+        var status = SecItemUpdate(query as CFDictionary, updateAttrs as CFDictionary)
+        if status == errSecItemNotFound {
+            status = SecItemAdd(addQuery as CFDictionary, nil)
+        }
         if status != errSecSuccess {
             logger("keychain_save_failed", "key=\(key) OSStatus=\(status)")
         }
